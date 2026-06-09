@@ -1,0 +1,1 @@
+awslocal s3 cp data/sales.csv s3://raw-sales/

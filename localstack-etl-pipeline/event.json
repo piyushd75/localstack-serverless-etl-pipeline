@@ -1,0 +1,14 @@
+{
+  "Records": [
+    {
+      "s3": {
+        "bucket": {
+          "name": "raw-sales"
+        },
+        "object": {
+          "key": "sales.csv"
+        }
+      }
+    }
+  ]
+}
