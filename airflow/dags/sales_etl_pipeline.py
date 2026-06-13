@@ -1,13 +1,39 @@
-from airflow import DAG
-from airflow.operators.python import PythonOperator
-from airflow.operators.empty import EmptyOperator
-
 from datetime import datetime
-import boto3
 import time
+
+import boto3
+
+from airflow import DAG
+from airflow.operators.empty import EmptyOperator
+from airflow.operators.python import (
+    PythonOperator,
+    get_current_context,
+)
 
 
 def upload_to_s3():
+    """
+    Upload the user-provided CSV file
+    from Airflow include/uploads to S3.
+    """
+
+    context = get_current_context()
+
+    dag_run = context["dag_run"]
+
+    file_name = dag_run.conf.get("file_name")
+
+    if not file_name:
+        raise ValueError(
+            "file_name is required."
+        )
+
+    csv_path = (
+        f"/usr/local/airflow/include/uploads/{file_name}"
+    )
+
+    print(f"Uploading {csv_path} to S3...")
+
     s3 = boto3.client(
         "s3",
         endpoint_url="http://host.docker.internal:4566",
@@ -17,18 +43,34 @@ def upload_to_s3():
     )
 
     s3.upload_file(
-        "/usr/local/airflow/include/sales.csv",
+        csv_path,
         "raw-sales",
-        "sales_airflow.csv",
+        file_name,
     )
 
-    print("File uploaded successfully")
-    
+    print(
+        f"{file_name} uploaded successfully"
+    )
+
+
 def wait_for_lambda():
-    print("Waiting for Lambda execution...")
+    """
+    Wait for LocalStack Lambda execution.
+    """
+
+    print(
+        "Waiting for Lambda execution..."
+    )
+
     time.sleep(20)
-    
+
+
 def validate_dynamodb():
+    """
+    Verify that records have been written
+    to DynamoDB.
+    """
+
     dynamodb = boto3.resource(
         "dynamodb",
         endpoint_url="http://host.docker.internal:4566",
@@ -37,20 +79,26 @@ def validate_dynamodb():
         region_name="ap-south-1",
     )
 
-    table = dynamodb.Table("sales_summary")
+    table = dynamodb.Table(
+        "sales_summary"
+    )
 
     response = table.scan()
 
     count = response["Count"]
 
-    print(f"Records found: {count}")
+    print(
+        f"Records found: {count}"
+    )
 
     if count == 0:
         raise ValueError(
             "No records found in DynamoDB"
         )
 
-    print("Validation successful")
+    print(
+        "Validation successful"
+    )
 
 
 with DAG(
@@ -58,10 +106,16 @@ with DAG(
     start_date=datetime(2025, 1, 1),
     schedule=None,
     catchup=False,
-    tags=["localstack", "etl"],
+    tags=[
+        "localstack",
+        "etl",
+        "streamlit",
+    ],
 ) as dag:
 
-    start = EmptyOperator(task_id="start")
+    start = EmptyOperator(
+        task_id="start"
+    )
 
     upload = PythonOperator(
         task_id="upload_to_s3",
@@ -78,6 +132,8 @@ with DAG(
         python_callable=validate_dynamodb,
     )
 
-    end = EmptyOperator(task_id="end")
+    end = EmptyOperator(
+        task_id="end"
+    )
 
     start >> upload >> wait >> validate >> end

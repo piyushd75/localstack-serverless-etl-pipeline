@@ -5,3 +5,13 @@ __pycache__/
 .pytest_cache/
 .DS_Store
 build/
+# Runtime uploads
+streamlit/uploads/*
+!streamlit/uploads/.gitkeep
+
+airflow/include/uploads/*
+!airflow/include/uploads/.gitkeep
+
+# Python cache
+__pycache__/
+*.py[cod]
