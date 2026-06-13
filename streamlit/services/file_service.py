@@ -1,30 +1,46 @@
+import os
 import shutil
 from pathlib import Path
 
-STREAMLIT_UPLOAD_DIR = Path(
-    "streamlit/uploads"
+
+IS_DOCKER = os.path.exists(
+    "/.dockerenv"
 )
 
-AIRFLOW_UPLOAD_DIR = Path(
-    "airflow/include/uploads"
-)
+if IS_DOCKER:
+    STREAMLIT_UPLOAD_DIR = Path(
+        "/app/uploads"
+    )
+
+    AIRFLOW_UPLOAD_DIR = Path(
+        "/app/uploads"
+    )
+
+else:
+    STREAMLIT_UPLOAD_DIR = Path(
+        "streamlit/uploads"
+    )
+
+    AIRFLOW_UPLOAD_DIR = Path(
+        "airflow/include/uploads"
+    )
 
 
-def save_uploaded_file(uploaded_file):
-    file_name = uploaded_file.name
+def save_uploaded_file(
+    uploaded_file,
+):
+    file_name = (
+        uploaded_file.name
+    )
 
     STREAMLIT_UPLOAD_DIR.mkdir(
         parents=True,
         exist_ok=True,
     )
 
-    AIRFLOW_UPLOAD_DIR.mkdir(
-        parents=True,
-        exist_ok=True,
-    )
-
     streamlit_file_path = (
-        STREAMLIT_UPLOAD_DIR / file_name
+        STREAMLIT_UPLOAD_DIR /
+        file_name
     )
 
     with open(
@@ -35,13 +51,21 @@ def save_uploaded_file(uploaded_file):
             uploaded_file.getbuffer()
         )
 
-    airflow_file_path = (
-        AIRFLOW_UPLOAD_DIR / file_name
-    )
+    if not IS_DOCKER:
 
-    shutil.copy(
-        streamlit_file_path,
-        airflow_file_path,
-    )
+        AIRFLOW_UPLOAD_DIR.mkdir(
+            parents=True,
+            exist_ok=True,
+        )
+
+        airflow_file_path = (
+            AIRFLOW_UPLOAD_DIR /
+            file_name
+        )
+
+        shutil.copy(
+            streamlit_file_path,
+            airflow_file_path,
+        )
 
     return file_name

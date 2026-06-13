@@ -1,0 +1,35 @@
+services:
+
+  localstack:
+    image: localstack/localstack-pro:latest
+    container_name: localstack-main
+
+    ports:
+      - "4566:4566"
+      - "4510-4559:4510-4559"
+
+    environment:
+      LOCALSTACK_AUTH_TOKEN: ${LOCALSTACK_AUTH_TOKEN}
+      DEBUG: 1
+      PERSISTENCE: 1
+
+    volumes:
+      - ./localstack-data:/var/lib/localstack
+      - /var/run/docker.sock:/var/run/docker.sock
+
+  streamlit:
+    build:
+      context: .
+      dockerfile: streamlit/Dockerfile
+
+    container_name: streamlit-ui
+
+    ports:
+      - "8501:8501"
+
+    volumes:
+      - ./streamlit:/app
+      - ./airflow/include/uploads:/app/uploads
+
+    depends_on:
+      - localstack
